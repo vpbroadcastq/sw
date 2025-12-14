@@ -9,7 +9,7 @@
 #include <span>
 
 
-std::optional<std::filesystem::path> get_config_path();
+std::optional<std::filesystem::path> get_config_file_path();
 
 
 struct timer_entry{

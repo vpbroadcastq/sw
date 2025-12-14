@@ -5,8 +5,8 @@
 #include <optional>
 
 
-
-std::optional<std::filesystem::path> get_config_path() {
+// TODO:  Windows & mac testing
+std::optional<std::filesystem::path> get_config_file_path() {
     std::filesystem::path config_file_name{"sw.ini"};
 
     const char* xdg_path = std::getenv("XDG_CONFIG_HOME");
