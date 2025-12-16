@@ -1,4 +1,4 @@
-#include "sw.h"
+#include <swlib/sw.h>
 
 #include <format>
 #include <string>
@@ -68,38 +68,38 @@ int main(int argc, char* argv[]) {
     std::chrono::system_clock::time_point program_start_sys = std::chrono::system_clock::now();
     std::chrono::steady_clock::time_point program_start_stdy = std::chrono::steady_clock::now();
 
-    task task = determine_task(argc, argv);
+    sw::task task = sw::determine_task(argc, argv);
 
     // sw uses the steady_clock for measuring elapsed time while running, but the system_clock for saving
     // named timers.  elapsed_saved_timer allows us to combine these two incommensurate clocks by converting
     // the saved start time (for a saved, named timer) to a duration which can be added to a steady_clock
     // time_point.
     std::chrono::duration<std::chrono::system_clock::rep, std::chrono::system_clock::period> elapsed_saved_timer {0};
-    std::optional<std::filesystem::path> config_file_path = get_config_file_path();
-    std::vector<timer_entry> saved_timers;
+    std::optional<std::filesystem::path> config_file_path = sw::get_config_file_path();
+    std::vector<sw::timer_entry> saved_timers;
     if (config_file_path) {
         {
-            std::optional<std::vector<char>>  config_file_data = read_file(*config_file_path);
+            std::optional<std::vector<char>>  config_file_data = sw::read_file(*config_file_path);
             if (config_file_data) {
-                saved_timers = decode_config_file_data(*config_file_data);
+                saved_timers = sw::decode_config_file_data(*config_file_data);
             }
         }
 
-        if (task == task::delete_named) {
+        if (task == sw::task::delete_named) {
             auto subr = std::ranges::remove_if(saved_timers,
-                [name=std::string_view{argv[1]}](const timer_entry& entry)-> bool {
+                [name=std::string_view{argv[1]}](const sw::timer_entry& entry)-> bool {
                     return entry.timer_name == name;
                 });
             if (!subr.empty()) {
                 saved_timers.erase(subr.begin(), subr.end());
-                std::vector<char> new_config_file_data = encode_config_file_data(saved_timers);
-                write_file(*config_file_path, new_config_file_data);
+                std::vector<char> new_config_file_data = sw::encode_config_file_data(saved_timers);
+                sw::write_file(*config_file_path, new_config_file_data);
             } else {
                 std::fprintf(stderr, "No timer named \"%s\" found in config file.\n", argv[1]);
                 return 1;
             }
             return 0;
-        } else if (task == task::list_timers) {
+        } else if (task == sw::task::list_timers) {
             for (const auto& timer : saved_timers) {
                 std::printf("%s\n",timer.timer_name.c_str());
             }
@@ -108,16 +108,16 @@ int main(int argc, char* argv[]) {
 
         // When did the timer start?  It's either the value in the config file, or when the program was started
         std::optional<std::chrono::system_clock::time_point> named_timer_start {};
-        if (task==task::run_named) {
-            named_timer_start = tstart_if_exists(saved_timers, argv[1]);
+        if (task==sw::task::run_named) {
+            named_timer_start = sw::tstart_if_exists(saved_timers, argv[1]);
         }
 
-        if (task==task::run_named && !named_timer_start) {
+        if (task==sw::task::run_named && !named_timer_start) {
             // The user passed in a timer name but no existing timer was found.  Create a new one.
-            timer_entry new_timer{.timer_name=argv[1], .start_time=program_start_sys};
+            sw::timer_entry new_timer{.timer_name=argv[1], .start_time=program_start_sys};
             saved_timers.push_back(new_timer);
-            std::vector<char> new_config_file_data = encode_config_file_data(saved_timers);
-            write_file(*config_file_path, new_config_file_data);
+            std::vector<char> new_config_file_data = sw::encode_config_file_data(saved_timers);
+            sw::write_file(*config_file_path, new_config_file_data);
         }
         
         if (named_timer_start) {
@@ -125,13 +125,13 @@ int main(int argc, char* argv[]) {
         }
     } else {
         // Unable to get a config file path.  This is only an error if the task requires a config file.
-        if (task == task::run_named || task == task::list_timers || task == task::delete_named) {
+        if (task == sw::task::run_named || task == sw::task::list_timers || task == sw::task::delete_named) {
             std::fprintf(stderr, "Unable to determine config file path.\n");
             return 1;
         }
     }
 
-    if (task == task::run_nameless || task == task::run_named) {
+    if (task == sw::task::run_nameless || task == sw::task::run_named) {
         run(elapsed_saved_timer, program_start_stdy);
     } 
     

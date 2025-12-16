@@ -1,5 +1,5 @@
 #include "testdata.h"
-#include "../sw.h"
+#include <swlib/sw.h>
 #include <array>
 #include <string_view>
 #include <chrono>

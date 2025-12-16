@@ -6,23 +6,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# swlib
-add_library(swlib STATIC sw.cpp config_path.cpp)
+option(BUILD_TESTS "Build the unit tests" ON)
 
-# sw.exe
-add_executable(sw main.cpp)
-target_link_libraries(sw PRIVATE swlib)
+add_subdirectory(swlib)
+add_subdirectory(exe)
 
-#
-#Tests
-#
-## TODO:  Building tests should be optional
-## TODO:  I Think cmake has better testing integration that is better than building a random
-#         executable called tests.
-find_package(GTest REQUIRED)
-add_executable(tests tests/tests.cpp tests/testdata.cpp)
-target_link_libraries(tests PRIVATE swlib GTest::GTest GTest::Main)
-
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
 
 # Optional: Set compiler flags for better diagnostics
 if(MSVC)

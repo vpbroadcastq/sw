@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <ranges>
 
-
+namespace sw {
 //
 // Generic file reading utility.  Reads an entire file in one-shot.
 //
@@ -39,7 +39,7 @@ std::optional<std::vector<char>> read_file(const std::filesystem::path& path) {
 //
 // Generic file writing utility.  Overwrites existing file, or creates a new one if needed.
 //
-bool write_file(const std::filesystem::path& path, std::span<char> file_data) {
+bool write_file(const std::filesystem::path& path, std::span<const char> file_data) {
     std::FILE* f = std::fopen(path.string().c_str(), "wb");
     if (!f) {
         return false;
@@ -150,3 +150,5 @@ task determine_task(int argc, char* argv[]) {
 
     return task::run_nameless;
 }
+
+} // namespace sw

@@ -8,6 +8,7 @@
 #include <vector>
 #include <span>
 
+namespace sw {
 
 enum class task {
     run_nameless,
@@ -34,5 +35,6 @@ std::vector<char> encode_config_file_data(std::span<const timer_entry> entries);
 std::optional<std::filesystem::path> get_config_file_path();
 
 
-std::optional<std::chrono::system_clock::time_point> tstart_if_exists(std::span<timer_entry>, std::string_view);
+std::optional<std::chrono::system_clock::time_point> tstart_if_exists(std::span<const timer_entry>, std::string_view);
 
+} // namespace sw

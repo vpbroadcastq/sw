@@ -14,7 +14,7 @@ sw my_timer
 # or, for a name with spaces,
 sw "my timer"
 ```
-If the timer already exists in the config file, `sw` resumes it and displays the time elapsed since the saved start time. If it does not exist, `sw` creates it starting “now”.  If the name has a space it must be enclosed in double quotes.  Stop it with Ctrl+C; the start time remains persisted, so the next run continues from the original start.
+If the timer already exists in the config file, `sw` resumes it and displays the time elapsed since it was started. If it does not exist, `sw` creates it and starts it immediately.  If the name has a space it must be enclosed in double quotes.  When you exit `sw` with Ctrl+C, the start time is persisted, so the next run continues from the original start.
 
 ### List saved timers
 ```bash
@@ -43,14 +43,14 @@ The config file is a plain-text file with repeating pairs of a bracketed name an
 - Lines starting with `[` and ending with `]` indicate a timer name.
 - The line immediately following a timer name is an implementation-defined value representing the start time of the timer.  Its format and interpretation is not published, subject to change, and values are not intended to be user-editable.
 - Config files are not portable across systems.
-On linux and other unix-like systems the config file defaults to `$XDG_CONFIG_HOME/sw.ini` (usually `~/.config/`)
+On linux and other unix-like systems the config file location defaults to `$XDG_CONFIG_HOME/sw.ini` (usually `~/.config/`)
 - Any operation that causes the config file to be written to, for example, running with `-d <timer name>` or with a new timer name will cause the entire file to be normalized; invalid entries and unnecessary whitespace will be removed.
 
-## Build (Linux / macOS)
-This project uses CMake. From the project root run:
+## Build
+This project uses CMake and requires C++23.  Googletest is required to build the unit tests (built by default, use `-DBUILD_TESTS=OFF` to skip building the tests).  From the project root run:
 
 ```bash
 cmake -S . -B build
-cmake --build build
+cmake --build ./build
 ```
-This produces the `sw` executable in `build/` (or whatever CMake generator/`CMAKE_RUNTIME_OUTPUT_DIRECTORY` is configured).
+This produces the `sw` executable in `build/exe` and a unit test executable in `build/tests`.

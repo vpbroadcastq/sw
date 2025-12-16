@@ -2,8 +2,7 @@
 
 #include <array>
 #include <gtest/gtest.h>
-#include "../sw.h"
-#include <string_view>
+#include <swlib/sw.h>
 #include <vector>
 
 //
@@ -11,15 +10,15 @@
 //
 TEST(decode_config_file_data, NoData) {
     std::array<char,0> emptyArray;
-    std::vector<timer_entry> entries = decode_config_file_data(emptyArray);
+    std::vector<sw::timer_entry> entries = sw::decode_config_file_data(emptyArray);
     EXPECT_TRUE(entries.empty());
 }
 TEST(decode_config_file_data, InvalidExamples) {
-    std::vector<timer_entry> entries = decode_config_file_data(testdata::all_invalid);
+    std::vector<sw::timer_entry> entries = sw::decode_config_file_data(testdata::all_invalid);
     EXPECT_TRUE(entries.empty());
 }
 TEST(decode_config_file_data, ValidExamples) {
-    std::vector<timer_entry> entries = decode_config_file_data(testdata::all_valid);
+    std::vector<sw::timer_entry> entries = sw::decode_config_file_data(testdata::all_valid);
     EXPECT_EQ(entries.size(), 3);
 
     ASSERT_EQ(entries.size(), testdata::all_valid_entries.size());
@@ -29,7 +28,7 @@ TEST(decode_config_file_data, ValidExamples) {
     }
 }
 TEST(decode_config_file_data, MixedValidInvalidExamples) {
-    std::vector<timer_entry> entries = decode_config_file_data(testdata::mixed_valid_invalid);
+    std::vector<sw::timer_entry> entries = sw::decode_config_file_data(testdata::mixed_valid_invalid);
     EXPECT_EQ(entries.size(), 4);
 
     ASSERT_EQ(entries.size(), testdata::mixed_valid_invalid_entries.size());
@@ -43,7 +42,7 @@ TEST(decode_config_file_data, MixedValidInvalidExamples) {
 // encode_config_file_data tests
 //
 TEST(encode_config_file_data, EmptyEntries) {
-    std::array<timer_entry,0> emptyArray;
+    std::array<sw::timer_entry,0> emptyArray;
     std::vector<char> file_data = encode_config_file_data(emptyArray);
     EXPECT_TRUE(file_data.empty());
 }
