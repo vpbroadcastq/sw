@@ -1,41 +1,131 @@
-#include "config.h"
+#include "sw.h"
 
-#include <format>
+#include <charconv>
+#include <vector>
 #include <string>
+#include <filesystem>
 #include <chrono>
-#include <thread>
-#include <iostream>
-#include <cstdio>
+#include <algorithm>
+#include <ranges>
 
-namespace chrono {
-    using namespace std::chrono;
+
+//
+// Generic file reading utility.  Reads an entire file in one-shot.
+//
+std::optional<std::vector<char>> read_file(const std::filesystem::path& path) {
+    if (!std::filesystem::exists(path) || !std::filesystem::is_regular_file(path)) {
+        return std::nullopt;
+    }
+    std::error_code ec {};
+    std::uintmax_t nbytes = std::filesystem::file_size(path, ec);
+    if (ec) {
+        return std::nullopt;
+    }
+
+    std::FILE* f = std::fopen(path.string().c_str(), "rb");
+    if (!f) {
+        return std::nullopt;
+    }
+
+    std::vector<char> file_data(nbytes);
+    size_t nread = std::fread(file_data.data(), 1, nbytes, f);
+    std::fclose(f);
+    if (nread != nbytes) {
+        return std::nullopt;
+    }
+    return file_data;
 }
 
-struct decomposed_duration {
-    chrono::days days;
-    chrono::hours hr;
-    chrono::minutes min;
-    chrono::seconds sec;
-    chrono::milliseconds ms;
-};
+//
+// Generic file writing utility.  Overwrites existing file, or creates a new one if needed.
+//
+bool write_file(const std::filesystem::path& path, std::span<char> file_data) {
+    std::FILE* f = std::fopen(path.string().c_str(), "wb");
+    if (!f) {
+        return false;
+    }
 
-template<typename Rep, typename Period>
-decomposed_duration decompose_duration(std::chrono::duration<Rep,Period> dur) {
-    const auto d = chrono::duration_cast<chrono::days>(dur);
-    const auto hrs = chrono::duration_cast<chrono::hours>(dur) - d;
-    const auto min = chrono::duration_cast<chrono::minutes>(dur) - hrs - d;
-    const auto sec = chrono::duration_cast<chrono::seconds>(dur) - min - hrs - d;
-    const auto ms = chrono::duration_cast<chrono::milliseconds>(dur) - sec - min - hrs - d;
-
-    return decomposed_duration{.days=d, .hr=hrs, .min=min, .sec=sec, .ms=ms};
+    size_t nwrite = std::fwrite(file_data.data(), 1, file_data.size(), f);
+    std::fclose(f);
+    if (nwrite != file_data.size()) {
+        return false;
+    }
+    return true;
 }
 
-enum class task {
-    run_nameless,
-    run_named,  // Possibly create a new named timer, possibly load existing from config
-    list_timers,  // List all the named timers in the config file and exit
-    delete_named,  // Delete a named timer from the config file and exit
-};
+
+//
+// Parses config file data from a span of characters into timer_entry structs.  Any invalid entries are skipped,
+// so that writing the vector<timer_entry> back to file will clean up any malformed data.
+//
+std::vector<timer_entry> decode_config_file_data(std::span<const char> file_data) {
+    auto is_whitespace = [](const char& c)->bool
+        { return c == ' ' || c == '\t' || c == '\r'; };
+
+    std::vector<timer_entry> entries;
+    std::string current_timer_name;
+    std::ranges::split_view file_lines {file_data, '\n' };
+    for (const auto& line : file_lines) {
+        // Extract a view into line (line_payload) that does not include leading and trailing whitespace
+        auto beg = std::ranges::find_if_not(line, is_whitespace);
+        auto end = std::ranges::find_if_not(line | std::views::reverse, is_whitespace).base();
+        if (beg == end) {
+            continue;
+        }
+        std::string_view line_payload(&*beg, static_cast<std::size_t>(std::ranges::distance(beg, end)));
+
+        if (line_payload.front() == '[' && line_payload.back() == ']') {
+            // Extract the timer name
+            current_timer_name = std::string(line_payload.substr(1, line_payload.size() - 2));
+        } else if (!current_timer_name.empty()) {
+            // Extract timestamp for the current timer
+            uint64_t timestamp {0};
+            std::from_chars_result result = std::from_chars(
+                line_payload.data(),
+                line_payload.data() + line_payload.size(),
+                timestamp
+            );
+            if (result.ec != std::errc{}) {
+                continue; // Failed to parse timestamp, skip this line
+                current_timer_name.clear();
+            }
+            auto time_point = std::chrono::system_clock::time_point(
+                std::chrono::milliseconds(timestamp)
+            );
+            entries.push_back(timer_entry{.timer_name=std::move(current_timer_name), .start_time=time_point});
+            current_timer_name.clear();
+        }
+    }
+    
+    return entries;
+}
+
+std::vector<char> encode_config_file_data(std::span<const timer_entry> entries) {
+    std::vector<char> file_data;
+    std::back_insert_iterator out{file_data};
+    for (const auto& entry : entries) {
+        auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+            entry.start_time.time_since_epoch()
+        ).count();
+        std::format_to(out, "[{}]\n{}\n\n", entry.timer_name, timestamp);
+    }
+
+    return file_data;
+}
+
+
+// Searches for a timer entry with the given name and returns its start time if found
+std::optional<std::chrono::system_clock::time_point> tstart_if_exists(std::span<const timer_entry> entries, std::string_view name) {
+    auto it = std::ranges::find_if(entries, 
+        [name](const timer_entry& entry){
+            return entry.timer_name == name;
+    });
+    if (it != entries.end()) {
+        return it->start_time;
+    }
+    return std::nullopt;
+}
+
 
 task determine_task(int argc, char* argv[]) {
     if (argc == 1) {
@@ -60,87 +150,3 @@ task determine_task(int argc, char* argv[]) {
 
     return task::run_nameless;
 }
-
-void run(std::chrono::system_clock::duration elapsed_saved_timer,
-         std::chrono::steady_clock::time_point program_start_stdy) {
-    std::string dest;
-    std::back_insert_iterator out{dest};
-    while (true) {
-        const chrono::steady_clock::time_point tnow = chrono::steady_clock::now();
-        const std::chrono::duration elapsed = elapsed_saved_timer + tnow - program_start_stdy;
-
-        const auto [d, hrs, min, sec, ms] = decompose_duration(elapsed);
-
-        if (d.count() > 0) {
-            std::format_to(out, "  {}:{:02}:{:02}:{:02}:{:03}          \r",
-                d.count(),hrs.count(),min.count(),sec.count(),ms.count());
-        } else if (hrs.count() > 0) {
-            std::format_to(out, "  {}:{:02}:{:02}:{:03}             \r",
-                hrs.count(),min.count(),sec.count(),ms.count());
-        } else if (min.count() > 0) {
-            std::format_to(out, "  {}:{:02}:{:03}                \r",
-                min.count(),sec.count(),ms.count());
-        } else if (sec.count() > 0) {
-            std::format_to(out, "  {}:{:03}                   \r",
-                sec.count(),ms.count());
-        } else {
-            std::format_to(out, "  {}                      \r",
-                ms.count());
-        }
-
-        //std::cout << dest << std::flush;
-        std::printf(dest.c_str());
-        std::fflush(stdout);
-        dest.clear();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-}
-
-int main(int argc, char* argv[]) {
-    // Delay between calculating these two quantities introduces a (hopefullly) tiny amount of error when
-    // loading a named timer.
-    std::chrono::system_clock::time_point program_start_sys = std::chrono::system_clock::now();
-    std::chrono::steady_clock::time_point program_start_stdy = std::chrono::steady_clock::now();
-
-    task task = determine_task(argc, argv);
-
-    // sw uses the steady_clock for measuring elapsed time while running, but the system_clock for saving
-    // named timers.  elapsed_saved_timer allows us to combine these two incommensurate clocks by converting
-    // the saved start time (for a saved, named timer) to a duration which can be added to a steady_clock
-    // time_point.
-    std::chrono::duration<std::chrono::system_clock::rep, std::chrono::system_clock::period> elapsed_saved_timer {0};
-    std::optional<std::filesystem::path> config_file_path = get_config_file_path();
-    std::vector<timer_entry> saved_timers;
-    if (config_file_path) {
-        saved_timers = read_config_file(*config_file_path);
-
-        // When did the timer start?  It's either the value in the config file, or when the program was started
-        std::optional<std::chrono::system_clock::time_point> named_timer_start {};
-        if (task==task::run_named) {
-            named_timer_start = tstart_if_exists(saved_timers, argv[1]);
-        }
-
-        if (task==task::run_named && !named_timer_start) {
-            // The user passed in a timer name but no existing timer was found.
-            // Create a new one.
-            timer_entry new_timer{.timer_name=argv[1], .start_time=program_start_sys};
-            write_to_config_file(*config_file_path, new_timer);
-        }
-        
-        if (named_timer_start) {
-            elapsed_saved_timer = program_start_sys - *named_timer_start;
-        }
-    }
-
-    if (task == task::run_nameless || task == task::run_named) {
-        run(elapsed_saved_timer, program_start_stdy);
-    } else if (task == task::list_timers) {
-        for (const auto& timer : saved_timers) {
-            std::printf("%s\n",timer.timer_name.c_str());
-        }
-    }
-    
-    return 0;
-}
-
