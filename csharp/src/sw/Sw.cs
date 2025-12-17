@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
-class Sw
+public class Sw
 {
     public enum Task
     {
@@ -84,6 +84,7 @@ class Sw
         return Path.Combine(configDir, "sw.ini");
     }
 
+    // TODO:  Seperate method to read the file into a string.  This facilitates unit testing.
     public static List<TimerEntry> ReadConfigFile(string path)
     {
         if (!Path.Exists(path))

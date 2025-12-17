@@ -127,6 +127,8 @@ std::optional<std::chrono::system_clock::time_point> tstart_if_exists(std::span<
 }
 
 // TODO:  This returns run_nameless in cases where the command line is invalid.  Warn the user instead?
+//        Specifically, as one example proble, an invalid flag like -x is going to be interpreted as a
+//        timer name.
 task determine_task(int argc, char* argv[]) {
     if (argc == 1) {
         return task::run_nameless;

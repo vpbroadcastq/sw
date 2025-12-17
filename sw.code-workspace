@@ -1,7 +1,12 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": ".",
+			"name": "sw (C++)"
+		},
+		{
+			"path": "csharp",
+			"name": "sw (C#)"
 		}
 	],
 	"settings": {},
@@ -27,6 +32,20 @@
 						"ignoreFailures": true
 					}
 				]
+			},
+			{
+				"name": "Debug C# Tests",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "build",
+				"program": "dotnet",
+				"args": [
+					"test",
+					"${workspaceFolder:sw (C#)}/tests/Sw.tests/tests.csproj"
+				],
+				"cwd": "${workspaceFolder:sw (C#)}",
+				"console": "internalConsole",
+				"stopAtEntry": false
 			}
 		]
 	}
