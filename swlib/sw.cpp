@@ -126,7 +126,7 @@ std::optional<std::chrono::system_clock::time_point> tstart_if_exists(std::span<
     return std::nullopt;
 }
 
-
+// TODO:  This returns run_nameless in cases where the command line is invalid.  Warn the user instead?
 task determine_task(int argc, char* argv[]) {
     if (argc == 1) {
         return task::run_nameless;
