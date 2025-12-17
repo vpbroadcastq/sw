@@ -43,7 +43,7 @@ std::string_view all_valid{R"([whatever]
 
 )"};
 
-std::array<timer_entry,3> all_valid_entries{{
+std::array<sw::timer_entry,3> all_valid_entries{{
     {.timer_name="whatever", .start_time=std::chrono::system_clock::time_point(std::chrono::milliseconds(1765721157118))},
     {.timer_name="name with spaces", .start_time=std::chrono::system_clock::time_point(std::chrono::milliseconds(1765721157118))},
     {.timer_name="Name~with \" special' ;chars!@#$%^&", .start_time=std::chrono::system_clock::time_point(std::chrono::milliseconds(1765721157118))}
@@ -86,7 +86,7 @@ MissingLeftBracket]
 
 )"};
 
-std::array<timer_entry,4> mixed_valid_invalid_entries{{
+std::array<sw::timer_entry,4> mixed_valid_invalid_entries{{
     {.timer_name="whatever", .start_time=std::chrono::system_clock::time_point(std::chrono::milliseconds(1765721157118))},
     {.timer_name="name with spaces", .start_time=std::chrono::system_clock::time_point(std::chrono::milliseconds(1765721157118))},
     {.timer_name="Name~with \" special' ;chars!@#$%^&", .start_time=std::chrono::system_clock::time_point(std::chrono::milliseconds(1765721157118))},

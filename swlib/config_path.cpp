@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <optional>
 
+namespace sw{
 
 // TODO:  Windows & mac testing
 std::optional<std::filesystem::path> get_config_file_path() {
@@ -21,3 +22,5 @@ std::optional<std::filesystem::path> get_config_file_path() {
 
     return std::nullopt;
 }
+
+} // namespace sw
