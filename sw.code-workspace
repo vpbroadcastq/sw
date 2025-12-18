@@ -34,18 +34,14 @@
 				]
 			},
 			{
-				"name": "Debug C# Tests",
+				"name": "Launch sw (C#)",
 				"type": "coreclr",
 				"request": "launch",
-				"preLaunchTask": "build",
-				"program": "dotnet",
-				"args": [
-					"test",
-					"${workspaceFolder:sw (C#)}/tests/Sw.tests/tests.csproj"
-				],
-				"cwd": "${workspaceFolder:sw (C#)}",
-				"console": "internalConsole",
-				"stopAtEntry": false
+				"program": "${workspaceFolder:sw (C#)}/src/sw/bin/Debug/net10.0/sw.dll",
+				"args": ["timer5"],
+				"cwd": "${workspaceFolder:sw (C#)}/src/sw",
+				"stopAtEntry": false,
+				"console": "internalConsole"
 			}
 		]
 	}

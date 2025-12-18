@@ -3,26 +3,32 @@ using System.Diagnostics;
 
 class Program
 {
-    // TODO:  Error handling and reporting for if the config file path can't be obtained || if it can't be
-    // created or written to.  This is not present right now because i am hardcoding the path for testing
-    // purposes.
+    // TODO:  Error handling for bad command lines.  For example, if you run with "dotnet run timer 2" it
+    // runs in nameless mode but the user probably wanted a new timer named "timer 2" but forgot the quotes.
     static void Main(string[] args)
     {
-        string pathTestConfigFile = "/home/ben/personal/dev/sw/csharp/test.ini";
         DateTimeOffset programStartTime = DateTimeOffset.UtcNow;
         Stopwatch sw = new Stopwatch();
         sw.Start();
 
-        TimeSpan elapsedSavedTimer = TimeSpan.Zero;
-
         Sw.Task task = Sw.DetermineTask(args);
 
-        List<Sw.TimerEntry> entries = Sw.ReadConfigFile(pathTestConfigFile);
-        if (entries.Count > 0)
+        TimeSpan elapsedSavedTimer = TimeSpan.Zero;
+        string? configFilePath = Sw.GetConfigFilePath();
+        if (configFilePath != null)
         {
+            List<Sw.TimerEntry> entries = new List<Sw.TimerEntry>();
+            {
+                string configFileData = Sw.ReadFile(configFilePath);
+                if (!string.IsNullOrEmpty(configFileData))
+                {
+                    entries = Sw.DecodeConfigFile(configFileData);
+                }
+            }
+            
             if (task == Sw.Task.ListTimers)
             {
-                foreach(Sw.TimerEntry entry in entries)
+                foreach(Sw.TimerEntry entry in entries) 
                 {
                     Console.WriteLine($"[{entry.TimerName}]\n{entry.StartTimeUtc.ToString("u", CultureInfo.InvariantCulture)}");
                 }
@@ -35,7 +41,8 @@ class Program
                 if (idx >= 0)
                 {
                     entries.RemoveAt(idx);
-                    Sw.WriteConfigFile(entries, pathTestConfigFile);
+                    string newConfigFileData = Sw.EncodeConfigFile(entries);
+                    Sw.WriteFile(configFilePath, newConfigFileData);
                 }
                 else
                 {
@@ -59,8 +66,19 @@ class Program
                         TimerName = args[0],
                         StartTimeUtc = programStartTime
                     });
-                    Sw.WriteConfigFile(entries, pathTestConfigFile);
+                    string newConfigFileData = Sw.EncodeConfigFile(entries);
+                    Sw.WriteFile(configFilePath, newConfigFileData);
                 }
+            }
+        }
+        else
+        {
+            // Unable to get a config file path.  This is only an error if the task requires
+            // a config file.
+            if (task == Sw.Task.ListTimers || task == Sw.Task.DeleteNamed || task == Sw.Task.RunNamed)
+            {
+                Console.WriteLine("Could not determine config file path.");
+                return;
             }
         }
 
@@ -80,43 +98,6 @@ class Program
                 Thread.Sleep(10);
             }
         }
-
-
-
-        /*if (args.Length == 1)
-        {
-            string timerName = args[0];
-            DateTimeOffset? startTimeUtcSavedTimer = Sw.StartTimeIfPresent(timerName, entries);
-            if (startTimeUtcSavedTimer.HasValue)
-            {
-                // The user wants to load a saved timer
-                elapsedSavedTimer = programStartTime - startTimeUtcSavedTimer.Value;
-            }
-            else
-            {
-                // The user is creating a new named timer
-                entries.Add(new Sw.TimerEntry
-                {
-                    TimerName = timerName,
-                    StartTimeUtc = programStartTime
-                });
-                Sw.WriteConfigFile(entries, pathTestConfigFile);
-            }
-        }
-        
-        while(true)
-        {
-            TimeSpan currentElapsed = sw.Elapsed + elapsedSavedTimer;
-            string s = string.Format("{0}:{1:00}:{2:00}:{3:00}:{4:000}",
-                currentElapsed.Days,
-                currentElapsed.Hours,
-                currentElapsed.Minutes,
-                currentElapsed.Seconds,
-                currentElapsed.Milliseconds);
-            Console.Write($"  {s}         \r");
-
-            Thread.Sleep(10);
-        }*/
     }
 }
 
