@@ -6,6 +6,7 @@ using System.Reflection;
 
 public class Sw
 {
+    private static readonly string ConfigFileName = "sw-cs.ini";
     public enum Task
     {
         RunNameless,  // Run a timer without saving to config
@@ -81,7 +82,7 @@ public class Sw
         {
             return null;
         }
-        return Path.Combine(configDir, "sw.ini");
+        return Path.Combine(configDir, ConfigFileName);
     }
 
 
