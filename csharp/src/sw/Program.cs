@@ -8,7 +8,7 @@ class Program
     // purposes.
     static void Main(string[] args)
     {
-        string pathTestConfigFile = "/home/ben/personal/dev/sw/csharp/test.ini";
+        string pathTestConfigFile = "/home/ben/personal/dev/sw/csharp/src/sw/test.ini";
         DateTimeOffset programStartTime = DateTimeOffset.UtcNow;
         Stopwatch sw = new Stopwatch();
         sw.Start();
@@ -17,7 +17,8 @@ class Program
 
         Sw.Task task = Sw.DetermineTask(args);
 
-        List<Sw.TimerEntry> entries = Sw.ReadConfigFile(pathTestConfigFile);
+        string configFileData = Sw.ReadFile(pathTestConfigFile);
+        List<Sw.TimerEntry> entries = Sw.DecodeConfigFile(configFileData);
         if (entries.Count > 0)
         {
             if (task == Sw.Task.ListTimers)
@@ -35,7 +36,8 @@ class Program
                 if (idx >= 0)
                 {
                     entries.RemoveAt(idx);
-                    Sw.WriteConfigFile(entries, pathTestConfigFile);
+                    string newConfigFileData = Sw.EncodeConfigFile(entries);
+                    Sw.WriteFile(pathTestConfigFile, newConfigFileData);
                 }
                 else
                 {
@@ -59,7 +61,8 @@ class Program
                         TimerName = args[0],
                         StartTimeUtc = programStartTime
                     });
-                    Sw.WriteConfigFile(entries, pathTestConfigFile);
+                    string newConfigFileData = Sw.EncodeConfigFile(entries);
+                    Sw.WriteFile(pathTestConfigFile, newConfigFileData);
                 }
             }
         }

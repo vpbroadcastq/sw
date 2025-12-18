@@ -4,6 +4,9 @@ using Xunit;
 
 public class UnitTest
 {
+    //
+    // DetermineTask tests
+    //
     [Fact]
     public void DetermineTaskListTimers()
     {
@@ -51,4 +54,63 @@ public class UnitTest
         Sw.Task taskLong = Sw.DetermineTask(argsLong);
         Assert.True(taskLong == Sw.Task.DeleteNamed);
     }
+
+    //
+    // DecodeConfigFile tests
+    //
+    [Fact]
+    public void DecodeConfigFileAllInvalid()
+    {
+        IEnumerable<Sw.TimerEntry> entries = Sw.DecodeConfigFile(TestData.AllInvalid);
+        Assert.Empty(entries);
+    }
+
+    [Fact]
+    public void DecodeConfigFileAllValid()
+    {
+        IEnumerable<Sw.TimerEntry> entries = Sw.DecodeConfigFile(TestData.AllValid);
+        Assert.Equal(TestData.AllValidEntries.Count, entries.Count());
+        for (int i = 0; i < TestData.AllValidEntries.Count; i++)
+        {
+            Assert.Equal(TestData.AllValidEntries[i].TimerName, entries.ElementAt(i).TimerName);
+            Assert.Equal(TestData.AllValidEntries[i].StartTimeUtc, entries.ElementAt(i).StartTimeUtc);
+        }
+    }
+
+    [Fact]
+    public void DecodeConfigFileMixedValidInvalid()
+    {
+        IEnumerable<Sw.TimerEntry> entries = Sw.DecodeConfigFile(TestData.MixedValidInvalid);
+        Assert.Equal(TestData.MixedValidInvalidEntries.Count, entries.Count());
+        for (int i = 0; i < TestData.MixedValidInvalidEntries.Count; i++)
+        {
+            Assert.Equal(TestData.MixedValidInvalidEntries[i].TimerName, entries.ElementAt(i).TimerName);
+            Assert.Equal(TestData.MixedValidInvalidEntries[i].StartTimeUtc, entries.ElementAt(i).StartTimeUtc);
+        }
+    }
+
+    //
+    // EncodeConfigFile tests
+    //
+    [Fact]
+    public void EncodeConfigFileEmptyList()
+    {
+        string encoded = Sw.EncodeConfigFile(new List<Sw.TimerEntry>());
+        Assert.Equal("", encoded);
+    }
+
+    [Fact]
+    public void EncodeConfigFileAllValid()
+    {
+        string encoded = Sw.EncodeConfigFile(TestData.AllValidEntries);
+        Assert.Equal(TestData.AllValidReencoded, encoded);
+    }
+
+    [Fact]
+    public void EncodeConfigFileMixedValidInvalid()
+    {
+        string encoded = Sw.EncodeConfigFile(TestData.MixedValidInvalidEntries);
+        Assert.Equal(TestData.MixedValidInvalidReencoded, encoded);
+    }
+
 }

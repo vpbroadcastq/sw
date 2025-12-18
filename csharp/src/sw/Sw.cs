@@ -84,17 +84,30 @@ public class Sw
         return Path.Combine(configDir, "sw.ini");
     }
 
-    // TODO:  Seperate method to read the file into a string.  This facilitates unit testing.
-    public static List<TimerEntry> ReadConfigFile(string path)
-    {
-        if (!Path.Exists(path))
-        {
-            return new List<TimerEntry>();
-        }
-        List<TimerEntry> entries = new List<TimerEntry>();
 
-        string fileContents = File.ReadAllText(path);
-        ReadOnlySpan<char> remainingFileContent = fileContents.AsSpan();
+    //
+    // Returns the start time for the given timer name, or null if not found.
+    //
+    public static DateTimeOffset? StartTimeIfPresent(string timerName, IEnumerable<TimerEntry> entries)
+    {
+        foreach (TimerEntry entry in entries)
+        {
+            if (entry.TimerName.Equals(timerName, StringComparison.Ordinal))
+            {
+                return entry.StartTimeUtc;
+            }
+        }
+        return null;
+    }
+
+
+    //
+    // Extracts the contents of a config file into a list of TimerEntry structs.
+    //
+    public static List<TimerEntry> DecodeConfigFile(ReadOnlySpan<char> fileContents)
+    {
+        ReadOnlySpan<char> remainingFileContent = fileContents;
+        List<TimerEntry> entries = new List<TimerEntry>();
         ReadOnlySpan<char> currTimerName = ReadOnlySpan<char>.Empty;
         while (!remainingFileContent.IsEmpty)
         {
@@ -141,37 +154,41 @@ public class Sw
         return entries;
     }
 
+
     //
-    // Returns the start time for the given timer name, or null if not found.
+    // Encodes a list of TimerEntry structs into the format used in the config file.
     //
-    public static DateTimeOffset? StartTimeIfPresent(string timerName, IEnumerable<TimerEntry> entries)
+    public static string EncodeConfigFile(IEnumerable<TimerEntry> entries)
     {
-        foreach (TimerEntry entry in entries)
+        using (StringWriter sw = new StringWriter())
         {
-            if (entry.TimerName.Equals(timerName, StringComparison.Ordinal))
+            foreach (TimerEntry entry in entries)
             {
-                return entry.StartTimeUtc;
+                sw.WriteLine($"[{entry.TimerName}]");
+                sw.WriteLine($"{entry.StartTimeUtc.ToString("O", CultureInfo.InvariantCulture)}\n");
             }
+            return sw.ToString();
         }
-        return null;
     }
 
+    //
+    // ReadFile and WriteFile read the contents of the specified file in one shot.  WriteFile overwrites the file
+    // if it exists.
+    //
+    public static string ReadFile(string path)
+    {
+        if (!Path.Exists(path))
+        {
+            return string.Empty;
+        }
+        return File.ReadAllText(path);
+    }
 
-    //
-    // Writes the given timer entries to the config file at the given path.  Overwrites the existing file.
-    //
-    public static bool WriteConfigFile(IEnumerable<TimerEntry> entries, string path)
+    public static bool WriteFile(string path, string data)
     {
         try
         {
-            using (StreamWriter sw = new StreamWriter(path, false))
-            {
-                foreach (TimerEntry entry in entries)
-                {
-                    sw.WriteLine($"\n[{entry.TimerName}]");
-                    sw.WriteLine($"{entry.StartTimeUtc.ToString("O", CultureInfo.InvariantCulture)}\n");
-                }
-            }
+            File.WriteAllText(path, data);
             return true;
         }
         catch
