@@ -7,6 +7,10 @@
 		{
 			"path": "csharp",
 			"name": "sw (C#)"
+		},
+		{		
+			"path": "rust",
+			"name": "sw (rust)"
 		}
 	],
 	"settings": {},
