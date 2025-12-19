@@ -12,6 +12,8 @@ add_subdirectory(swlib)
 add_subdirectory(exe)
 
 if(BUILD_TESTS)
+    include(CTest)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 
