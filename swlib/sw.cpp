@@ -40,6 +40,13 @@ std::optional<std::vector<char>> read_file(const std::filesystem::path& path) {
 // Generic file writing utility.  Overwrites existing file, or creates a new one if needed.
 //
 bool write_file(const std::filesystem::path& path, std::span<const char> file_data) {
+    // Ensure the directory exists (creates intermediate dirs as needed)
+    std::error_code ec;
+    std::filesystem::create_directories(path.parent_path(),ec);
+    if (ec) {
+        return false;
+    }
+    
     std::FILE* f = std::fopen(path.string().c_str(), "wb");
     if (!f) {
         return false;

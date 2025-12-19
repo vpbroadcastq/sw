@@ -3,4 +3,8 @@
 **/.vscode/
 **/obj/
 **/bin/
+**/.vs/
+**/vcpkg_installed/
 **/target/
+
+CMakeUserPresets.json
