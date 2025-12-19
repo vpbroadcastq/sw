@@ -56,5 +56,5 @@ cmake --build ./build
 This produces the `sw` executable in `build/exe` and a unit test executable in `build/tests`.
 
 ## Other things in this repository
-The `csharp` folder contains a partial "experimental" implementation of `sw` as an exercise in comparing implementations of the same thing in different languages.  It is not really meant to be used.
+The `csharp` and `rust` folders contain partial "experimental" implementations of `sw` in these languages as an exercise in comparing implementations of the same thing in different languages.  They are not really meant to be used.
 
