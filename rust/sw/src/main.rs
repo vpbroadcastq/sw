@@ -73,3 +73,49 @@ fn run(elapsed_saved_timer:std::time::Duration, program_start_steady: std::time:
     }
 }
 
+
+fn read_file(path: &std::path::Path) -> std::result::Result<std::string::String, std::io::Error> {
+    // TODO:  What if the file doesn't exist?
+    let mut file: std::fs::File = std::fs::File::open(path)?;
+    let mut contents= std::string::String::new();
+    use std::io::Read;
+    file.read_to_string(&mut contents)?;
+    return Ok(contents);
+}
+
+fn write_file(path: &std::path::Path, data: &std::string::String) -> std::result::Result<(), std::io::Error> {
+    // TODO:  What if file doesn't exist?
+    let mut file = std::fs::File::open(path)?;
+    use std::io::Write;
+    // TODO:  write_all && .as_bytes() vs some sort of string writing method?
+    file.write_all(&data.as_bytes())?;
+    return Ok(());
+}
+
+fn x() -> () {
+    let mut vs: std::vec::Vec<std::string::String> = std::vec![
+        "1".to_string(),
+        "2".to_string(),
+        "3".to_string(),
+    ];
+
+    // Read-only borrow loop
+    let mut total_len:usize = 0;
+    for e in &vs {
+        let e:&std::string::String = e;
+        total_len += e.len();
+    }
+
+    // Mutable borrow loop
+    for e in &mut vs {
+        let e:&mut std::string::String = e;
+        e.push('!');
+    }
+
+    let mut upper = std::vec::Vec::<std::string::String>::new();
+    // Consume loop
+    for e in vs {
+        let mut e:std::string::String = e;
+        upper.push(e.to_uppercase());
+    }
+}
