@@ -13,6 +13,8 @@ public class Sw
         RunNamed,  // Possibly create a new named timer, possibly load existing from config
         ListTimers,  // List all the named timers in the config file and exit
         DeleteNamed,  // Delete a named timer from the config file and exit
+        InvalidCommandline,
+        PrintHelp,
     }
 
     // TODO:  This returns RunNameless in cases where the command line is invalid.  Warn the user instead?
@@ -27,10 +29,17 @@ public class Sw
         {
             if (programArgs[0] == "-l" || programArgs[0] == "--list-timers") {
                 return Task.ListTimers;
-            } else {
-                // The argument is the name of the new or existing timer
-                return Task.RunNamed;
             }
+
+            if (programArgs[0] == "-h" || programArgs[0] == "-?" || programArgs[0] == "--help") {
+                return Task.PrintHelp;
+            }
+
+            if (!IsValidTimerName(programArgs[0])) {
+                return Task.InvalidCommandline;
+            }
+
+            return Task.RunNamed;
         }
 
         if (nargs == 2) {
@@ -39,7 +48,17 @@ public class Sw
             }
         }
 
-        return Task.RunNameless;
+        return Task.InvalidCommandline;
+    }
+
+    public static bool IsValidTimerName(ReadOnlySpan<char> timerName)
+    {
+        // Timer names must be non-empty and may not contain square brackets
+        if (timerName.IsEmpty || timerName.StartsWith('-'))
+        {
+            return false;
+        }
+        return true;
     }
 
     public struct TimerEntry
@@ -137,7 +156,7 @@ public class Sw
                 continue;
             }
 
-            if (!currTimerName.IsEmpty)
+            if (IsValidTimerName(currTimerName))
             {
                 if (DateTimeOffset.TryParseExact(currLineTrimmed, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTimeOffset startedUtc))
                 {

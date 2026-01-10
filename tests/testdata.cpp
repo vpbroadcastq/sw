@@ -116,6 +116,10 @@ std::string_view mixed_valid_invalid_reencoded{R"([whatever]
 
 )"};
 
+
+//
+// Timer names
+//
 std::array<std::string_view,5> valid_timer_names{{
     "Timer1",
     "My Timer",
