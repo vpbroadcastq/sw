@@ -62,6 +62,24 @@ void run(std::chrono::system_clock::duration elapsed_saved_timer,
     }
 }
 
+std::string_view usage() {
+    std::string_view usage_text = 
+        R"(sw - Simple Stopwatch
+
+Usage:
+  sw                           = Run a nameless timer.  The timer is lost when the program exits.
+  sw <timer-name>              = Run a named stopwatch timer saved from a previous run.  If the named timer does not 
+                                 exist, it will be created.  The named timer's start time is saved in a config file 
+                                 and will persist between runs of the program.  Timer names may not begin with a -
+                                 character.
+  sw -l,--list                 = List all named timers stored in the config file.
+  sw -d <timer-name>,--delete <timer-name>
+                               = Delete the named timer from the config file if it exists.
+  sw -?, -h, --help            = Print this help message.
+)";
+    return usage_text;
+}
+
 int main(int argc, char* argv[]) {
     // Delay between calculating these two quantities introduces a (hopefullly) tiny amount of error when
     // loading a named timer.
@@ -69,6 +87,16 @@ int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point program_start_stdy = std::chrono::steady_clock::now();
 
     sw::task task = sw::determine_task(argc, argv);
+    if (task == sw::task::invalid_commandline) {
+        std::fprintf(stderr,
+            "Error:  Invalid command line arguments.\nError:  Run 'sw --help' for usage information.\n");
+        return 1;
+    }
+
+    if (task == sw::task::print_help) {
+        std::printf("%s\n", usage().data());
+        return 0;
+    }
 
     // sw uses the steady_clock for measuring elapsed time while running, but the system_clock for saving
     // named timers.  elapsed_saved_timer allows us to combine these two incommensurate clocks by converting

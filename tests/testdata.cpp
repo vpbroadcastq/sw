@@ -19,6 +19,12 @@ NoBrackets
 [ MissingRightBracket
 1765721157118
 
+[-StartsWithDash]
+1765721157118
+
+[--StartsWithTwoDashes]
+1765721157118
+
 MissingLeftBracket]
 1765721157118
 
@@ -81,6 +87,9 @@ MissingLeftBracket]
 [Name~with " special' ;chars!@#$%^&]
 1765721157118
 
+[-nameStartsWithDash]
+1765721157118
+
 [   name with leading&trailing spaces  ]
 1765721157118
 
@@ -106,5 +115,21 @@ std::string_view mixed_valid_invalid_reencoded{R"([whatever]
 1765721157118
 
 )"};
+
+std::array<std::string_view,5> valid_timer_names{{
+    "Timer1",
+    "My Timer",
+    "Timer_123",
+    "Timer-With-Dashes",
+    "%$*#Timer.Wit-h.Sp?ecial#Chars"
+}};
+
+std::array<std::string_view,5> invalid_timer_names{{
+    "",
+    "-StartsWithDash",
+    "--DoubleDashStart",
+    "---",
+    "- Invalid"
+}};
 
 } // namespace testdata

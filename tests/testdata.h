@@ -17,4 +17,7 @@ extern std::string_view mixed_valid_invalid;
 extern std::array<sw::timer_entry,4> mixed_valid_invalid_entries;
 extern std::string_view mixed_valid_invalid_reencoded;
 
+extern std::array<std::string_view,5> valid_timer_names;
+extern std::array<std::string_view,5> invalid_timer_names;
+
 } // namespace testdata

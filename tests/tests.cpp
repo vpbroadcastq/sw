@@ -5,7 +5,129 @@
 #include <swlib/sw.h>
 #include <vector>
 
-// TODO:  Tests for determine_task
+//
+// determine_task tests
+//
+TEST(determine_task, RunNameless) {
+    const char* argv[] = {"sw"};
+    sw::task result = sw::determine_task(1, const_cast<char**>(argv));
+    EXPECT_EQ(result, sw::task::run_nameless);
+}
+
+TEST(determine_task, ListTimers) {
+    {
+        const char* argv[] = {"sw", "-l"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::list_timers);
+    }
+    {
+        const char* argv[] = {"sw", "--list-timers"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::list_timers);
+    }
+}
+
+TEST(determine_task, PrintHelp) {
+    {
+        const char* argv[] = {"sw", "-h"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::print_help);
+    }
+    {
+        const char* argv[] = {"sw", "-?"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::print_help);
+    }
+    {
+        const char* argv[] = {"sw", "--help"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::print_help);
+    }
+}
+
+TEST(determine_task, RunNamed) {
+    {
+        const char* argv[] = {"sw", "mytimer"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::run_named);
+    }
+    {
+        const char* argv[] = {"sw", "123"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::run_named);
+    }
+    {
+        const char* argv[] = {"sw", "my_timer_name"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::run_named);
+    }
+}
+
+TEST(determine_task, InvalidCommandline) {
+    // Made up flags/timer name can't begin with a -
+    {
+        const char* argv[] = {"sw", "-x"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::invalid_commandline);
+    }
+    {
+        const char* argv[] = {"sw", "--unknown-flag"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::invalid_commandline);
+    }
+    // Missing timer name to delete
+    {
+        const char* argv[] = {"sw", "-d"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::invalid_commandline);
+    }
+    {
+        const char* argv[] = {"sw", "--delete-timer"};
+        sw::task result = sw::determine_task(2, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::invalid_commandline);
+    }
+    // You can't pass in what looks like multiple names
+    {
+        const char* argv[] = {"sw", "arg1", "arg2"};
+        sw::task result = sw::determine_task(3, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::invalid_commandline);
+    }
+    {
+        const char* argv[] = {"sw", "arg1", "arg2", "arg3"};
+        sw::task result = sw::determine_task(4, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::invalid_commandline);
+    }
+}
+
+TEST(determine_task, DeleteNamed) {
+    {
+        const char* argv[] = {"sw", "-d", "mytimer"};
+        sw::task result = sw::determine_task(3, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::delete_named);
+    }
+    {
+        const char* argv[] = {"sw", "--delete-timer", "mytimer"};
+        sw::task result = sw::determine_task(3, const_cast<char**>(argv));
+        EXPECT_EQ(result, sw::task::delete_named);
+    }
+}
+
+
+//
+// is_valid_timer_name tests
+//
+TEST(is_valid_timer_name, ValidExamples) {
+    for (const auto& name : testdata::valid_timer_names) {
+        EXPECT_TRUE(sw::is_valid_timer_name(name)) << "Expected valid timer name: \"" << name << "\"";
+    }
+}
+
+TEST(is_valid_timer_name, InvalidExamples) {
+    for (const auto& name : testdata::invalid_timer_names) {
+        EXPECT_FALSE(sw::is_valid_timer_name(name)) << "Expected invalid timer name: \"" << name << "\"";
+    }
+}
+
 
 //
 // decode_config_file_data tests
