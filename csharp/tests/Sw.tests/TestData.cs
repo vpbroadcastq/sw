@@ -116,6 +116,23 @@ internal static class TestData
 
 
         """;
+
+    //
+    // Timer names
+    //
+    public static readonly string[] ValidTimerNames = new string[] {
+        "Timer1",
+        "My Timer",
+        "Timer_123",
+        "Timer-With-Dashes",
+        "%$*#Timer.Wit-h.Sp?ecial#Chars"
+    };
+
+    public static readonly string[] InvalidTimerNames = new string[] {
+        "",
+        "-StartsWithDash",
+        "--DoubleDashStart",
+        "---",
+        "- Invalid"
+    };
 }
-
-

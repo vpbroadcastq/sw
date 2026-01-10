@@ -12,6 +12,16 @@ class Program
         sw.Start();
 
         Sw.Task task = Sw.DetermineTask(args);
+        if (task == Sw.Task.InvalidCommandline)
+        {
+            Console.WriteLine("Error:  Invalid command line arguments.\nError:  Run 'sw --help' for usage information.\n");
+            return;
+        }
+        else if (task == Sw.Task.PrintHelp)
+        {
+            Console.WriteLine(GetUsageText());
+            return;
+        }
 
         TimeSpan elapsedSavedTimer = TimeSpan.Zero;
         string? configFilePath = Sw.GetConfigFilePath();
@@ -30,7 +40,7 @@ class Program
             {
                 foreach(Sw.TimerEntry entry in entries) 
                 {
-                    Console.WriteLine($"[{entry.TimerName}]\n{entry.StartTimeUtc.ToString("u", CultureInfo.InvariantCulture)}");
+                    Console.WriteLine($"{entry.TimerName}");
                 }
                 return;
             }
@@ -98,6 +108,25 @@ class Program
                 Thread.Sleep(10);
             }
         }
+    }
+
+    static string GetUsageText()
+    {
+        return """
+            sw - Simple Stopwatch
+
+            Usage:
+            sw                           = Run a nameless timer.  The timer is lost when the program exits.
+            sw <timer-name>              = Run a named stopwatch timer saved from a previous run.  If the named timer does not 
+                                            exist, it will be created.  The named timer's start time is saved in a config file 
+                                            and will persist between runs of the program.  Timer names may not begin with a -
+                                            character.
+            sw -l,--list                 = List all named timers stored in the config file.
+            sw -d <timer-name>,--delete <timer-name>
+                                         = Delete the named timer from the config file if it exists.
+            sw -?, -h, --help            = Print this help message.
+
+            """;
     }
 }
 
