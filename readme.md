@@ -14,7 +14,7 @@ sw my_timer
 # or, for a name with spaces,
 sw "my timer"
 ```
-If the timer already exists in the config file, `sw` resumes it and displays the time elapsed since it was started. If it does not exist, `sw` creates it and starts it immediately.  If the name has a space it must be enclosed in double quotes.  When you exit `sw` with Ctrl+C, the start time is persisted, so the next run continues from the original start.
+If the timer already exists in the config file, `sw` resumes it and displays the time elapsed since it was started. If it does not exist, `sw` creates it and starts it immediately.  Names can contain any characters but may not begin with a `-`.  If the name contains a space, the whole name must be enclosed in double quotes.  When you exit `sw` with Ctrl+C, the start time is persisted, so the next run continues from the original start.
 
 ### List saved timers
 ```bash
@@ -28,6 +28,15 @@ sw -l
 sw --delete-timer my_timer
 # or,
 sw -d my_timer
+```
+
+### Print usage iunformation
+```bash
+sw --help
+# or,
+sw -h
+# or,
+sw -?
 ```
 
 ## Config file

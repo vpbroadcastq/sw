@@ -9,6 +9,48 @@
 #include <ranges>
 
 namespace sw {
+
+task determine_task(int argc, char* argv[]) {
+    if (argc == 1) {
+        return task::run_nameless;
+    }
+
+    if (argc == 2) {
+        std::string_view arg1{argv[1]};
+        if (arg1 == "-l" || arg1 == "--list-timers") {
+            return task::list_timers;
+        }
+        if (arg1 == "-h" || arg1 == "-?" || arg1 == "--help") {
+            return task::print_help;
+        }
+
+        // The argument is either the name of a timer to run or an invalid flag
+        if (!is_valid_timer_name(arg1)) {
+            return task::invalid_commandline;
+        }
+
+        return task::run_named;
+    }
+
+    if (argc == 3) {
+        std::string_view arg1{argv[1]};
+        if (arg1 == "-d" || arg1 == "--delete-timer") {
+            return task::delete_named;
+        }
+    }
+
+    return task::invalid_commandline;
+}
+
+
+bool is_valid_timer_name(std::string_view name) {
+    if (name.empty() || name.starts_with('-')) {
+        return false;
+    }
+    return true;
+}
+
+
 //
 // Generic file reading utility.  Reads an entire file in one-shot.
 //
@@ -84,7 +126,7 @@ std::vector<timer_entry> decode_config_file_data(std::span<const char> file_data
         if (line_payload.front() == '[' && line_payload.back() == ']') {
             // Extract the timer name
             current_timer_name = std::string(line_payload.substr(1, line_payload.size() - 2));
-        } else if (!current_timer_name.empty()) {
+        } else if (is_valid_timer_name(current_timer_name)) {
             // Extract timestamp for the current timer
             uint64_t timestamp {0};
             std::from_chars_result result = std::from_chars(
@@ -133,31 +175,5 @@ std::optional<std::chrono::system_clock::time_point> tstart_if_exists(std::span<
     return std::nullopt;
 }
 
-// TODO:  This returns run_nameless in cases where the command line is invalid.  Warn the user instead?
-//        Specifically, as one example proble, an invalid flag like -x is going to be interpreted as a
-//        timer name.
-task determine_task(int argc, char* argv[]) {
-    if (argc == 1) {
-        return task::run_nameless;
-    }
-
-    if (argc == 2) {
-        std::string_view arg1{argv[1]};
-        if (arg1 == "-l" || arg1 == "--list-timers") {
-            return task::list_timers;
-        } else {
-            return task::run_named;
-        }
-    }
-
-    if (argc == 3) {
-        std::string_view arg1{argv[1]};
-        if (arg1 == "-d" || arg1 == "--delete-timer") {
-            return task::delete_named;
-        }
-    }
-
-    return task::run_nameless;
-}
 
 } // namespace sw

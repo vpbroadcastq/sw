@@ -15,9 +15,16 @@ enum class task {
     run_named,  // Possibly create a new named timer, possibly load existing from config
     list_timers,  // List all the named timers in the config file and exit
     delete_named,  // Delete a named timer from the config file and exit
+    invalid_commandline,
+    print_help,
 };
 task determine_task(int argc, char* argv[]);
 
+
+//
+// A timer name may not be empty and may not begin with a '-'.
+//
+bool is_valid_timer_name(std::string_view name);
 
 //
 // Generic file reading and writing utilities.  Read and write an entire file in one-shot.
@@ -26,7 +33,7 @@ std::optional<std::vector<char>> read_file(const std::filesystem::path& path);
 bool write_file(const std::filesystem::path& path, std::span<const char> file_data);
 
 
-struct timer_entry{
+struct timer_entry {
     std::string timer_name;
     std::chrono::system_clock::time_point start_time;
 };
