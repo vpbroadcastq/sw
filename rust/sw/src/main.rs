@@ -7,13 +7,18 @@ fn main() {
 
     // You can pass any iterator/collection without cloning inside determine_task.
     // std::env::args() yields owned Strings already (from the OS), and we avoid extra copies.
-    let _task: Task = determine_task(std::env::args());
+    let task: Task = determine_task(std::env::args());
+    if task == Task::PrintHelp {
+        println!("{}", HELP_TEXT);
+        return;
+    }
+
 
     run(std::time::Duration::from_secs(0), program_start_steady);
 
 }
 
-
+#[derive(PartialEq, Eq)]
 enum Task {
     RunNamed,
     RunNameless,
@@ -156,19 +161,20 @@ fn to_string(t:std::time::SystemTime) -> std::string::String {
     return format!("{}", t.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs());
 }
 
-const HELP_TEXT: &str = "\
-Usage: sw [OPTIONS] [TIMER_NAME]
+const HELP_TEXT: &'static str = "\
+sw - Simple Stopwatch
 
-A simple stopwatch timer utility.
+Usage:
+  sw                           = Run a nameless timer.  The timer is lost when the program exits.
+  sw <timer-name>              = Run a named stopwatch timer saved from a previous run.  If the named timer does not 
+                                 exist, it will be created.  The named timer's start time is saved in a config file 
+                                 and will persist between runs of the program.  Timer names may not begin with a -
+                                 character.
+  sw -l,--list                 = List all named timers stored in the config file.
+  sw -d <timer-name>,--delete <timer-name>
+                               = Delete the named timer from the config file if it exists.
+  sw -?, -h, --help            = Print this help message.
 
-Arguments:
-  [TIMER_NAME]          Name of the timer to run (optional)
-
-Options:
-  -l, --list-timers     List all saved timers
-  -d, --delete-timer    Delete a named timer
-  -h, --help            Display this help message
-  -?, --help            Display this help message
 ";
 
 
