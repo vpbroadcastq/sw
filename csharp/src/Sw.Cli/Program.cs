@@ -1,10 +1,7 @@
-using System.Globalization;
 using System.Diagnostics;
 
 class Program
 {
-    // TODO:  Error handling for bad command lines.  For example, if you run with "dotnet run timer 2" it
-    // runs in nameless mode but the user probably wanted a new timer named "timer 2" but forgot the quotes.
     static void Main(string[] args)
     {
         DateTimeOffset programStartTime = DateTimeOffset.UtcNow;
