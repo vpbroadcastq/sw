@@ -2,6 +2,8 @@
 
 ## ToDo
 - Usage informaton should report the path to the config file
+- The time field in TimerEntry shouldn't be "elapsed" it should be start_time or something
+- What does --list-timers print if there are no timers?  Nothing?  Should there be a message?
 
 
 ## Feature ideas
@@ -9,6 +11,7 @@
 - Saved timers report the date and time they were started when you do -l
 - Saved timers report the date/time they were started when you run one of them
 - Spacebar to lap
+
 
 ## Investigate
 - Do the C# and C++ impls store the config file in the same place?  C++ creates an sw/ folder but C# does not?

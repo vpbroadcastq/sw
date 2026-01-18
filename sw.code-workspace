@@ -13,7 +13,11 @@
 			"name": "sw (rust)"
 		}
 	],
-	"settings": {},
+	"settings": {
+		"editor.inlineSuggest.enabled": false,
+		"github.copilot.inlineSuggest.enable": false,
+		"github.copilot.chat.enabled": true
+	},
 	"launch": {
 		"version": "0.2.0",
 		"configurations": [

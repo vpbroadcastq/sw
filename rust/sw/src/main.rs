@@ -1,22 +1,90 @@
 
 
 fn main() {
-    //let program_start_sys = std::time::SystemTime::now();
+    let program_start_sys = std::time::SystemTime::now();
     let program_start_steady = std::time::Instant::now();
     println!("Hello, world!");
 
     // You can pass any iterator/collection without cloning inside determine_task.
     // std::env::args() yields owned Strings already (from the OS), and we avoid extra copies.
     let task: Task = determine_task(std::env::args());
+    if task == Task::InvalidCommandline {
+        eprintln!("Invalid command line arguments.\nError:  Run 'sw --help' for usage information.");
+        return;
+    }
     if task == Task::PrintHelp {
         println!("{}", HELP_TEXT);
         return;
     }
 
+    let cf:std::option::Option<std::path::PathBuf> = config_file_path();
+    let mut elapsed_saved_timer:std::time::Duration = std::time::Duration::ZERO;
+    if cf.is_some() {
+        let config_file_data:std::result::Result<std::string::String, std::io::Error> = read_file(cf.as_ref().expect(""));
+        let mut saved_timers:std::vec::Vec<TimerEntry> = if config_file_data.is_ok() {
+            decode_config_file_data(&config_file_data.expect(""))
+        } else {
+            std::vec::Vec::<TimerEntry>::new()
+        };
 
-    run(std::time::Duration::from_secs(0), program_start_steady);
+        if task == Task::DeleteNamed {
+            let mut a: std::env::Args = std::env::args();
+            a.next();  // Skip the full command line
+            let name:std::option::Option<std::string::String> = a.next();  // Skip the option indicating timer delete
+            if let Some(idx) = saved_timers.iter().position(|e|{e.name == name.as_deref().expect("")}) {
+                let idx:usize = idx;
+                saved_timers.swap_remove(idx);
+                let new_config_file_data:std::string::String = encode_config_file_data(&saved_timers);
+                let _ = write_file(cf.as_ref().expect(""), &new_config_file_data);
+            } else {
+                eprintln!("No timer named \"{}\" found in config file.\n", name.as_ref().expect(""));
+                return;
+            }
+        } else if task == Task::ListTimers {
+            for t in &saved_timers {
+                let t:&TimerEntry = t;
+                println!("{}", t.name);
+            }
+            return;
+        }
+
+        // Either RunNamed or RunNameless
+        // When did the timer start?  It's either the value in the config file, or when the program was started
+        // TODO:  Why not assign program_start_time right here &! have it be an option<>?
+        let mut named_timer_start: std::option::Option<std::time::SystemTime> = None;
+        if task == Task::RunNamed {
+            let mut a: std::env::Args = std::env::args();
+            a.next();  // Skip the full command line
+            let tname:std::option::Option<std::string::String> = a.next();  // Skip the option indicating timer delete
+            named_timer_start = tstart_if_exists(&saved_timers, tname.as_deref().expect(""));
+        }
+
+        if task == Task::RunNamed && named_timer_start.is_none() {
+            let mut a: std::env::Args = std::env::args();
+            a.next();  // Skip the full command line
+            let tname:std::option::Option<std::string::String> = a.next();  // Skip the option indicating timer delete
+            let new_timer:TimerEntry = TimerEntry {name: tname.expect(""), elapsed: program_start_sys};
+            saved_timers.push(new_timer);
+            let new_filedata:std::string::String = encode_config_file_data(&saved_timers);
+            let _ = write_file(cf.as_ref().expect(""), &new_filedata);
+        }
+
+        if named_timer_start.is_some() {
+            elapsed_saved_timer = program_start_sys.duration_since(named_timer_start.expect("")).expect("");
+        }
+    } else {
+        // Unable to get a config file path.  This is only an error if the task requires a config file.
+        if task == Task::RunNamed || task == Task::ListTimers || task == Task::DeleteNamed {
+            eprintln!("Unable to determine config file path.");
+            return;
+        }
+    }
+
+
+    run(elapsed_saved_timer, program_start_steady);
 
 }
+
 
 #[derive(PartialEq, Eq)]
 enum Task {
@@ -27,6 +95,7 @@ enum Task {
     InvalidCommandline,
     PrintHelp,
 }
+
 
 fn determine_task<S>(mut args: impl std::iter::Iterator<Item=S>) -> Task
 where
@@ -99,6 +168,8 @@ fn read_file(path: &std::path::Path) -> std::result::Result<std::string::String,
     return Ok(contents);
 }
 
+
+// TODO:  This should take a str?
 fn write_file(path: &std::path::Path, data: &std::string::String) -> std::result::Result<(), std::io::Error> {
     // TODO:  What if file doesn't exist?
     let mut file: std::fs::File = std::fs::File::open(path)?;
@@ -106,6 +177,22 @@ fn write_file(path: &std::path::Path, data: &std::string::String) -> std::result
     // TODO:  write_all && .as_bytes() vs some sort of string writing method?
     file.write_all(&data.as_bytes())?;
     return Ok(());
+}
+
+
+fn config_file_path() -> std::option::Option<std::path::PathBuf> {
+    let fname:&std::path::Path = std::path::Path::new("sw-r.ini");
+    let conf_path:std::result::Result<std::string::String, std::env::VarError> = std::env::var("XDG_CONFIG_HOME");
+    if conf_path.is_ok() {
+        return Some(std::path::Path::new(&conf_path.unwrap()).join(fname));
+    }
+
+    let home_dir:std::result::Result<std::string::String, std::env::VarError> = std::env::var("HOME");
+    if home_dir.is_ok() {
+        return Some(std::path::Path::new(&home_dir.unwrap()).join(".config").join(fname));
+    }
+
+    return None;
 }
 
 
@@ -144,6 +231,25 @@ fn decode_config_file_data(fdata: &str) -> std::vec::Vec<TimerEntry> {
 }
 
 
+fn encode_config_file_data(timers:&std::vec::Vec<TimerEntry>) -> std::string::String {
+    let mut s:std::string::String = std::string::String::new();
+    for t in timers {
+        let t:&TimerEntry = t;
+        // TODO:  Ineffecient.  Should be able to format "into" s w/o involving 'temp'
+        let temp:std::string::String = format!("[{}]\n{}\n\n", t.name, to_string(t.elapsed));
+        s.push_str(&temp);
+    }
+    return s;
+}
+
+
+fn tstart_if_exists(timers:&std::vec::Vec<TimerEntry>, tname:&str) -> std::option::Option<std::time::SystemTime> {
+    match timers.iter().find(|t|{let t:&TimerEntry = t; return t.name == tname;}) {
+        Some(entry) => return Some(entry.elapsed),
+        None => return None
+    }
+}
+
 
 // String is assumed to be a number of seconds since UNIX_EPOCH
 fn to_system_time(s: &str) -> std::result::Result<std::time::SystemTime, ()> {
@@ -156,10 +262,12 @@ fn to_system_time(s: &str) -> std::result::Result<std::time::SystemTime, ()> {
     return Ok(std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(seconds));
 }
 
+
 // TODO:  Pass by ref?
 fn to_string(t:std::time::SystemTime) -> std::string::String {
     return format!("{}", t.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs());
 }
+
 
 const HELP_TEXT: &'static str = "\
 sw - Simple Stopwatch
