@@ -1,7 +1,7 @@
 
 
 fn main() {
-    //let program_start_sys = std::time::SystemTime::now();
+    let program_start_sys = std::time::SystemTime::now();
     let program_start_steady = std::time::Instant::now();
     println!("Hello, world!");
 
@@ -18,6 +18,7 @@ fn main() {
     }
 
     let cf:std::option::Option<std::path::PathBuf> = config_file_path();
+    let mut elapsed_saved_timer:std::time::Duration = std::time::Duration::ZERO;
     if cf.is_some() {
         let config_file_data:std::result::Result<std::string::String, std::io::Error> = read_file(cf.as_ref().expect(""));
         let mut saved_timers:std::vec::Vec<TimerEntry> = if config_file_data.is_ok() {
@@ -34,7 +35,7 @@ fn main() {
                 let idx:usize = idx;
                 saved_timers.swap_remove(idx);
                 let new_config_file_data:std::string::String = encode_config_file_data(&saved_timers);
-                let _ = write_file(&cf.expect(""), &new_config_file_data);
+                let _ = write_file(cf.as_ref().expect(""), &new_config_file_data);
             } else {
                 eprintln!("No timer named \"{}\" found in config file.\n", name.as_ref().expect(""));
                 return;
@@ -46,10 +47,41 @@ fn main() {
             }
             return;
         }
+
+        // Either RunNamed or RunNameless
+        // When did the timer start?  It's either the value in the config file, or when the program was started
+        // TODO:  Why not assign program_start_time right here &! have it be an option<>?
+        let mut named_timer_start: std::option::Option<std::time::SystemTime> = None;
+        if task == Task::RunNamed {
+            let mut a: std::env::Args = std::env::args();
+            a.next();  // Skip the full command line
+            let tname:std::option::Option<std::string::String> = a.next();  // Skip the option indicating timer delete
+            named_timer_start = tstart_if_exists(&saved_timers, tname.as_deref().expect(""));
+        }
+
+        if task == Task::RunNamed && named_timer_start.is_none() {
+            let mut a: std::env::Args = std::env::args();
+            a.next();  // Skip the full command line
+            let tname:std::option::Option<std::string::String> = a.next();  // Skip the option indicating timer delete
+            let new_timer:TimerEntry = TimerEntry {name: tname.expect(""), elapsed: program_start_sys};
+            saved_timers.push(new_timer);
+            let new_filedata:std::string::String = encode_config_file_data(&saved_timers);
+            let _ = write_file(cf.as_ref().expect(""), &new_filedata);
+        }
+
+        if named_timer_start.is_some() {
+            elapsed_saved_timer = program_start_sys.duration_since(named_timer_start.expect("")).expect("");
+        }
+    } else {
+        // Unable to get a config file path.  This is only an error if the task requires a config file.
+        if task == Task::RunNamed || task == Task::ListTimers || task == Task::DeleteNamed {
+            eprintln!("Unable to determine config file path.");
+            return;
+        }
     }
 
 
-    run(std::time::Duration::from_secs(0), program_start_steady);
+    run(elapsed_saved_timer, program_start_steady);
 
 }
 
@@ -137,6 +169,7 @@ fn read_file(path: &std::path::Path) -> std::result::Result<std::string::String,
 }
 
 
+// TODO:  This should take a str?
 fn write_file(path: &std::path::Path, data: &std::string::String) -> std::result::Result<(), std::io::Error> {
     // TODO:  What if file doesn't exist?
     let mut file: std::fs::File = std::fs::File::open(path)?;
@@ -207,6 +240,14 @@ fn encode_config_file_data(timers:&std::vec::Vec<TimerEntry>) -> std::string::St
         s.push_str(&temp);
     }
     return s;
+}
+
+
+fn tstart_if_exists(timers:&std::vec::Vec<TimerEntry>, tname:&str) -> std::option::Option<std::time::SystemTime> {
+    match timers.iter().find(|t|{let t:&TimerEntry = t; return t.name == tname;}) {
+        Some(entry) => return Some(entry.elapsed),
+        None => return None
+    }
 }
 
 
