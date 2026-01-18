@@ -33,14 +33,18 @@ fn main() {
             if let Some(idx) = saved_timers.iter().position(|e|{e.name == name.as_deref().expect("")}) {
                 let idx:usize = idx;
                 saved_timers.swap_remove(idx);
-                //let new_config_file_data:std::vec::Vec<std::string::String> = encode_config_file_data(&saved_timers);
+                let new_config_file_data:std::string::String = encode_config_file_data(&saved_timers);
+                let _ = write_file(&cf.expect(""), &new_config_file_data);
             } else {
                 eprintln!("No timer named \"{}\" found in config file.\n", name.as_ref().expect(""));
                 return;
             }
-
         } else if task == Task::ListTimers {
-            //...
+            for t in &saved_timers {
+                let t:&TimerEntry = t;
+                println!("{}", t.name);
+            }
+            return;
         }
     }
 
@@ -48,6 +52,7 @@ fn main() {
     run(std::time::Duration::from_secs(0), program_start_steady);
 
 }
+
 
 #[derive(PartialEq, Eq)]
 enum Task {
@@ -58,6 +63,7 @@ enum Task {
     InvalidCommandline,
     PrintHelp,
 }
+
 
 fn determine_task<S>(mut args: impl std::iter::Iterator<Item=S>) -> Task
 where
@@ -130,6 +136,7 @@ fn read_file(path: &std::path::Path) -> std::result::Result<std::string::String,
     return Ok(contents);
 }
 
+
 fn write_file(path: &std::path::Path, data: &std::string::String) -> std::result::Result<(), std::io::Error> {
     // TODO:  What if file doesn't exist?
     let mut file: std::fs::File = std::fs::File::open(path)?;
@@ -139,8 +146,9 @@ fn write_file(path: &std::path::Path, data: &std::string::String) -> std::result
     return Ok(());
 }
 
+
 fn config_file_path() -> std::option::Option<std::path::PathBuf> {
-    let fname:&std::path::Path = std::path::Path::new("sw.ini");
+    let fname:&std::path::Path = std::path::Path::new("sw-r.ini");
     let conf_path:std::result::Result<std::string::String, std::env::VarError> = std::env::var("XDG_CONFIG_HOME");
     if conf_path.is_ok() {
         return Some(std::path::Path::new(&conf_path.unwrap()).join(fname));
@@ -190,6 +198,17 @@ fn decode_config_file_data(fdata: &str) -> std::vec::Vec<TimerEntry> {
 }
 
 
+fn encode_config_file_data(timers:&std::vec::Vec<TimerEntry>) -> std::string::String {
+    let mut s:std::string::String = std::string::String::new();
+    for t in timers {
+        let t:&TimerEntry = t;
+        // TODO:  Ineffecient.  Should be able to format "into" s w/o involving 'temp'
+        let temp:std::string::String = format!("[{}]\n{}\n\n", t.name, to_string(t.elapsed));
+        s.push_str(&temp);
+    }
+    return s;
+}
+
 
 // String is assumed to be a number of seconds since UNIX_EPOCH
 fn to_system_time(s: &str) -> std::result::Result<std::time::SystemTime, ()> {
@@ -202,10 +221,12 @@ fn to_system_time(s: &str) -> std::result::Result<std::time::SystemTime, ()> {
     return Ok(std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(seconds));
 }
 
+
 // TODO:  Pass by ref?
 fn to_string(t:std::time::SystemTime) -> std::string::String {
     return format!("{}", t.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs());
 }
+
 
 const HELP_TEXT: &'static str = "\
 sw - Simple Stopwatch
