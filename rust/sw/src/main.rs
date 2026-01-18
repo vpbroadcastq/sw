@@ -8,9 +8,40 @@ fn main() {
     // You can pass any iterator/collection without cloning inside determine_task.
     // std::env::args() yields owned Strings already (from the OS), and we avoid extra copies.
     let task: Task = determine_task(std::env::args());
+    if task == Task::InvalidCommandline {
+        eprintln!("Invalid command line arguments.\nError:  Run 'sw --help' for usage information.");
+        return;
+    }
     if task == Task::PrintHelp {
         println!("{}", HELP_TEXT);
         return;
+    }
+
+    let cf:std::option::Option<std::path::PathBuf> = config_file_path();
+    if cf.is_some() {
+        let config_file_data:std::result::Result<std::string::String, std::io::Error> = read_file(cf.as_ref().expect(""));
+        let mut saved_timers:std::vec::Vec<TimerEntry> = if config_file_data.is_ok() {
+            decode_config_file_data(&config_file_data.expect(""))
+        } else {
+            std::vec::Vec::<TimerEntry>::new()
+        };
+
+        if task == Task::DeleteNamed {
+            let mut a: std::env::Args = std::env::args();
+            a.next();  // Skip the full command line
+            let name:std::option::Option<std::string::String> = a.next();  // Skip the option indicating timer delete
+            if let Some(idx) = saved_timers.iter().position(|e|{e.name == name.as_deref().expect("")}) {
+                let idx:usize = idx;
+                saved_timers.swap_remove(idx);
+                //let new_config_file_data:std::vec::Vec<std::string::String> = encode_config_file_data(&saved_timers);
+            } else {
+                eprintln!("No timer named \"{}\" found in config file.\n", name.as_ref().expect(""));
+                return;
+            }
+
+        } else if task == Task::ListTimers {
+            //...
+        }
     }
 
 
@@ -106,6 +137,21 @@ fn write_file(path: &std::path::Path, data: &std::string::String) -> std::result
     // TODO:  write_all && .as_bytes() vs some sort of string writing method?
     file.write_all(&data.as_bytes())?;
     return Ok(());
+}
+
+fn config_file_path() -> std::option::Option<std::path::PathBuf> {
+    let fname:&std::path::Path = std::path::Path::new("sw.ini");
+    let conf_path:std::result::Result<std::string::String, std::env::VarError> = std::env::var("XDG_CONFIG_HOME");
+    if conf_path.is_ok() {
+        return Some(std::path::Path::new(&conf_path.unwrap()).join(fname));
+    }
+
+    let home_dir:std::result::Result<std::string::String, std::env::VarError> = std::env::var("HOME");
+    if home_dir.is_ok() {
+        return Some(std::path::Path::new(&home_dir.unwrap()).join(".config").join(fname));
+    }
+
+    return None;
 }
 
 
