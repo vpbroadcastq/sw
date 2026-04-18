@@ -169,10 +169,9 @@ fn read_file(path: &std::path::Path) -> std::result::Result<std::string::String,
 }
 
 
-// TODO:  This should take a str?
-fn write_file(path: &std::path::Path, data: &std::string::String) -> std::result::Result<(), std::io::Error> {
-    // TODO:  What if file doesn't exist?
-    let mut file: std::fs::File = std::fs::File::open(path)?;
+fn write_file(path: &std::path::Path, data: &str) -> std::result::Result<(), std::io::Error> {
+    let mut file:std::fs::File = std::fs::OpenOptions::new().write(true).create(true).open(path)?;
+
     use std::io::Write;
     // TODO:  write_all && .as_bytes() vs some sort of string writing method?
     file.write_all(&data.as_bytes())?;
